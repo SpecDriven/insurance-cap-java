@@ -1,0 +1,33 @@
+spring:
+  application.name: insurance-cap-java
+  # Schema is owned by Liquibase (see ARCHITECTURE.md); disable Spring SQL init
+  sql.init.mode: never
+  liquibase:
+    change-log: classpath:db/changelog/db.changelog-master.yaml
+
+cds:
+  data-source.auto-config.enabled: false
+  security:
+    mock:
+      enabled: true
+      # Mock users per ARCHITECTURE.md "Auth"
+      users:
+        - name: prospect
+          password: prospect
+          roles: [ prospect ]
+        - name: insured
+          password: insured
+          roles: [ insured ]
+        - name: agent
+          password: agent
+          roles: [ agent ]
+        - name: adjuster
+          password: adjuster
+          roles: [ adjuster ]
+
+insurance:
+  # Company operating timezone: governs all business dates (ARCHITECTURE.md)
+  time-zone: America/New_York
+  jobs:
+    # Nightly jobs run at 01:10 in the operating timezone
+    nightly-cron: "0 10 1 * * *"

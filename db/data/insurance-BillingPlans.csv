@@ -1,0 +1,4 @@
+plan,payments,serviceFeePerPayment
+Paid in full,1,0.00
+Two-pay,2,3.00
+Monthly autopay,6,5.00

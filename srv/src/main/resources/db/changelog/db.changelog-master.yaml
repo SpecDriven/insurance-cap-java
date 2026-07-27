@@ -1,0 +1,41 @@
+# Schema evolution via Liquibase (ARCHITECTURE.md).
+# The CDS-generated DDL (schema-h2.sql, produced by the cds-maven-plugin during
+# the build) is applied as one runOnChange changeset — it is a full
+# DROP-and-CREATE script, which suits the in-memory H2 dev/test database.
+databaseChangeLog:
+  - changeSet:
+      id: cds-schema
+      author: cds-build
+      runOnChange: true
+      changes:
+        - sqlFile:
+            path: schema-h2.sql
+            splitStatements: true
+            stripComments: true
+
+  - changeSet:
+      id: number-range-sequences
+      author: insurance
+      changes:
+        - createSequence:
+            sequenceName: POLICY_NUMBER_SEQ
+            startValue: 100001
+        - createSequence:
+            sequenceName: CLAIM_NUMBER_SEQ
+            startValue: 500001
+
+  # Rating tables are CSV seed data under db/data/ (ARCHITECTURE.md "Rate data")
+  - changeSet:
+      id: seed-rating-tables
+      author: insurance
+      runOnChange: true
+      changes:
+        - loadData:
+            tableName: insurance_AutoPlanRates
+            file: db/data/insurance-AutoPlanRates.csv
+        - loadData:
+            tableName: insurance_HomeRates
+            file: db/data/insurance-HomeRates.csv
+        - loadData:
+            tableName: insurance_BillingPlans
+            file: db/data/insurance-BillingPlans.csv
