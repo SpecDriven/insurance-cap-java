@@ -1,0 +1,4 @@
+tierName,minPremium,maxPremium,acknowledgementHours,acknowledgementDays,decisionDays
+Standard,0.00,49999.99,4.00,,2
+Complex,50000.00,250000.00,8.00,,5
+Large account,250000.01,,,1,10

@@ -340,3 +340,287 @@ service UnderwritingService {
   @(requires: 'agent')
   action expireRecommendationCurePeriods() returns array of InspectionRecommendations;
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Distribution
+// ─────────────────────────────────────────────────────────────────────────────
+
+// Spec: specs/distribution/agency-management/onboard-agency.feature.md
+// Spec: specs/distribution/agency-management/manage-agency-appointment.feature.md
+// Spec: specs/distribution/agency-management/set-commission-schedule.feature.md
+// Spec: specs/distribution/agency-management/terminate-agency-relationship.feature.md
+// Spec: specs/distribution/producer-licensing/verify-producer-license.feature.md
+// Spec: specs/distribution/producer-licensing/track-license-renewal.feature.md
+// Spec: specs/distribution/producer-licensing/block-unlicensed-production.feature.md
+// Spec: specs/distribution/agent-portal/manage-portal-user-access.feature.md
+// Spec: specs/distribution/agent-portal/start-quote-in-portal.feature.md
+// Spec: specs/distribution/agent-portal/hand-off-quote-to-underwriter.feature.md
+// Spec: specs/distribution/agent-portal/view-book-of-business.feature.md
+// Spec: specs/distribution/embedded/integrate-partner-api.feature.md
+// Spec: specs/distribution/embedded/offer-embedded-quote.feature.md
+// Spec: specs/distribution/embedded/attribute-embedded-sale.feature.md
+@path: '/distribution'
+@(requires: 'authenticated-user')
+service DistributionService {
+  @readonly entity Agencies              as projection on db.Agencies;
+  @readonly entity AgencyAppointments    as projection on db.AgencyAppointments;
+  @readonly entity CommissionSchedules   as projection on db.CommissionSchedules;
+  @readonly entity CommissionEntries     as projection on db.CommissionEntries;
+  @readonly entity CommissionStatements  as projection on db.CommissionStatements;
+  @readonly entity ContingentCommissions as projection on db.ContingentCommissions;
+  @readonly entity BookRolls             as projection on db.BookRolls;
+  @readonly entity Producers             as projection on db.Producers;
+  @readonly entity ProducerLicenses      as projection on db.ProducerLicenses;
+  @readonly entity LicenseReminders      as projection on db.LicenseReminders;
+  @readonly entity ProductionBlocks      as projection on db.ProductionBlocks;
+  @readonly entity ComplianceOverrides   as projection on db.ComplianceOverrides;
+  @readonly entity PortalUsers           as projection on db.PortalUsers;
+  @readonly entity PortalQuotes          as projection on db.PortalQuotes;
+  @readonly entity PortalReferrals       as projection on db.PortalReferrals;
+  @readonly entity BookOfBusinessViews   as projection on db.BookOfBusinessViews;
+  @readonly entity BookExports           as projection on db.BookExports;
+  @readonly entity Partners              as projection on db.Partners;
+  @readonly entity PartnerCredentials    as projection on db.PartnerCredentials;
+  @readonly entity EmbeddedOffers        as projection on db.EmbeddedOffers;
+  @readonly entity SaleAttributions      as projection on db.SaleAttributions;
+  // The renewal pipeline lists the agency's own in-force policies
+  @readonly entity Policies              as projection on db.Policies;
+
+  // ─── Agency onboarding and appointment ───
+  @(requires: 'agent')
+  action submitOnboardingPacket(legalName : String,
+                                taxId : String,
+                                domicileState : String,
+                                residentLicenseActive : Boolean,
+                                eoPerClaimLimit : Decimal(14, 2),
+                                eoAggregateLimit : Decimal(14, 2),
+                                w9Signed : Boolean,
+                                principalName : String,
+                                principalEmail : String) returns Agencies;
+
+  @(requires: 'agent')
+  action completeRegulatoryReview(agencyId : UUID,
+                                  priorLicenseRevocation : Boolean) returns Agencies;
+
+  @(requires: 'agent')
+  action confirmProductionCommitment(agencyId : UUID,
+                                     projectedNewPremium : Decimal(14, 2)) returns Agencies;
+
+  @(requires: 'agent')
+  action appointAgency(agencyId : UUID,
+                       state : String,
+                       lines : array of String) returns array of AgencyAppointments;
+
+  @(requires: 'agent')
+  action acknowledgeAppointmentFiling(appointmentId : UUID,
+                                      acknowledgedOn : Date) returns AgencyAppointments;
+
+  @(requires: 'agent')
+  action lapseExpiredAppointments() returns array of AgencyAppointments;
+
+  // ─── Commission ───
+  @(requires: 'agent')
+  action publishCommissionSchedule(agencyId : UUID,
+                                   publishedBy : String,
+                                   effectiveDate : Date) returns array of CommissionSchedules;
+
+  @(requires: 'agent')
+  action earnNewBusinessCommission(agencyId : UUID,
+                                   policyId : UUID,
+                                   lineOfBusiness : String,
+                                   basisPremium : Decimal(14, 2),
+                                   sharedWithAgencyId : UUID,
+                                   writingSharePct : Decimal(5, 2)) returns array of CommissionEntries;
+
+  @(requires: 'agent')
+  action chargebackCommission(policyId : UUID,
+                              cancellationType : String,
+                              unearnedPct : Decimal(5, 2)) returns array of CommissionEntries;
+
+  @(requires: 'agent')
+  action calculateContingentCommission(agencyId : UUID,
+                                       contingentYear : Integer,
+                                       earnedPremium : Decimal(14, 2),
+                                       incurredLoss : Decimal(14, 2)) returns ContingentCommissions;
+
+  // ─── Termination ───
+  @(requires: 'agent')
+  action terminateAgency(agencyId : UUID,
+                         forCause : Boolean,
+                         noticeDate : Date,
+                         noticePeriodDays : Integer) returns Agencies;
+
+  @(requires: 'agent')
+  action designateReplacementAgency(terminatedAgencyId : UUID,
+                                    replacementAgencyId : UUID) returns array of BookRolls;
+
+  @(requires: 'agent')
+  action recordAgentOfRecordLetter(policyId : UUID,
+                                   electedAgencyId : UUID,
+                                   receivedOn : Date) returns BookRolls;
+
+  @(requires: 'agent')
+  action produceFinalStatement(agencyId : UUID,
+                               periodStart : Date,
+                               periodEnd : Date) returns CommissionStatements;
+
+  // ─── Producer licensing ───
+  @(requires: 'agent')
+  action registerProducer(npn : String,
+                          fullName : String,
+                          email : String,
+                          agencyId : UUID,
+                          residentState : String,
+                          role : String) returns Producers;
+
+  @(requires: 'agent')
+  action verifyProducerLicense(producerId : UUID,
+                               state : String,
+                               registryName : String,
+                               licenseClass : String,
+                               expiresOn : Date) returns ProducerLicenses;
+
+  @(requires: 'agent')
+  action checkLicenseForRisk(producerId : UUID, riskState : String) returns ProducerLicenses;
+
+  @(requires: 'agent')
+  action recordLicenseSuspension(producerId : UUID,
+                                 state : String,
+                                 suspendedOn : Date) returns ProducerLicenses;
+
+  @(requires: 'agent')
+  action runRenewalTracker() returns array of LicenseReminders;
+
+  @(requires: 'agent')
+  action reinstateLicense(licenseId : UUID, renewedOn : Date) returns ProducerLicenses;
+
+  @(requires: 'agent')
+  action recordLicenseRenewal(licenseId : UUID,
+                              newExpiresOn : Date) returns ProducerLicenses;
+
+  // ─── Blocking unlicensed production ───
+  @(requires: 'agent')
+  action attemptBind(producerId : UUID,
+                     riskState : String,
+                     policyId : UUID) returns ProductionBlocks;
+
+  @(requires: 'agent')
+  action bindOnBehalfOfStaff(principalProducerId : UUID,
+                             riskState : String,
+                             policyId : UUID) returns ProductionBlocks;
+
+  @(requires: 'agent')
+  action approveComplianceOverride(producerId : UUID,
+                                   approvedBy : String,
+                                   evidence : String) returns ComplianceOverrides;
+
+  // ─── Portal user access ───
+  @(requires: 'agent')
+  action inviteProducer(agencyId : UUID,
+                        npn : String,
+                        fullName : String,
+                        email : String) returns PortalUsers;
+
+  @(requires: 'agent')
+  action deactivatePortalUser(portalUserId : UUID,
+                              receivingProducerId : UUID) returns PortalUsers;
+
+  @(requires: 'agent')
+  action removeAdministratorRole(portalUserId : UUID) returns PortalUsers;
+
+  @(requires: 'agent')
+  action disableDormantAccounts() returns array of PortalUsers;
+
+  // ─── Portal quoting ───
+  @(requires: 'agent')
+  action startAutoQuoteInPortal(producerId : UUID,
+                                vehicleMake : String,
+                                vehicleModel : String,
+                                vehicleYear : Integer,
+                                driverName : String,
+                                driverEmail : String,
+                                driverPhone : String,
+                                garagingState : String,
+                                garagingZip : String,
+                                mvrConsent : Boolean) returns PortalQuotes;
+
+  @(requires: 'agent')
+  action startHomeQuoteInPortal(producerId : UUID,
+                                address : String,
+                                yearBuilt : Integer,
+                                constructionType : String,
+                                ownerName : String,
+                                ownerEmail : String,
+                                dwellingCoverage : Decimal(12, 2),
+                                garagingState : String,
+                                roofAgeYears : Integer) returns PortalQuotes;
+
+  // ─── Portal hand-off to underwriting ───
+  @(requires: 'agent')
+  action handOffToUnderwriter(portalQuoteId : UUID,
+                              producerId : UUID,
+                              annualPremium : Decimal(14, 2),
+                              classCode : String) returns PortalReferrals;
+
+  @(requires: 'agent')
+  action requestLossRuns(portalReferralId : UUID, yearsRequested : Integer) returns PortalReferrals;
+
+  @(requires: 'agent')
+  action uploadLossRuns(portalReferralId : UUID) returns PortalReferrals;
+
+  @(requires: 'agent')
+  action declinePortalReferral(portalReferralId : UUID,
+                               declineReason : String) returns PortalReferrals;
+
+  @(requires: 'agent')
+  action runPortalReferralSlaMonitor() returns array of PortalReferrals;
+
+  // ─── Book of business ───
+  @(requires: 'agent')
+  action viewBookOfBusiness(producerId : UUID, agencyWide : Boolean) returns BookOfBusinessViews;
+
+  @(requires: 'agent')
+  action exportBookOfBusiness(producerId : UUID) returns BookExports;
+
+  @(requires: 'agent')
+  action viewRenewalPipeline(agencyId : UUID, withinDays : Integer) returns array of Policies;
+
+  // ─── Embedded partners ───
+  @(requires: 'agent')
+  action certifyPartner(partnerId : UUID,
+                        scopedLines : String,
+                        reviewedBy : String) returns Partners;
+
+  @(requires: 'agent')
+  action rotatePartnerCredential(partnerId : UUID) returns array of PartnerCredentials;
+
+  @(requires: 'agent')
+  action recordPartnerRequestRate(partnerId : UUID,
+                                  requestsPerMinute : Integer,
+                                  sustainedMinutes : Integer) returns Partners;
+
+  @(requires: 'agent')
+  action publishApiVersion(newVersion : Integer, publishedOn : Date) returns Partners;
+
+  @(requires: 'agent')
+  action offerEmbeddedRentersQuote(partnerCode : String,
+                                   applicantName : String,
+                                   unitAddress : String,
+                                   leaseStartDate : Date) returns EmbeddedOffers;
+
+  @(requires: 'agent')
+  action acknowledgeDisclosures(offerId : UUID,
+                                disclosureShown : Boolean,
+                                coverageSummaryShown : Boolean) returns EmbeddedOffers;
+
+  @(requires: 'agent')
+  action acceptEmbeddedOffer(offerId : UUID) returns EmbeddedOffers;
+
+  @(requires: 'agent')
+  action bindFromPartnerToken(quoteToken : String, policyId : UUID) returns SaleAttributions;
+
+  @(requires: 'agent')
+  action reattributeSale(policyId : UUID,
+                         newPartnerCode : String,
+                         approvedBy : String) returns array of SaleAttributions;
+}

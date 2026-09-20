@@ -207,4 +207,142 @@ public final class Statuses {
     public static final String RECOMMENDATION_DECLINED = "Declined";
     public static final int CRITICAL_CURE_DAYS = 30;
     public static final int ADVISORY_CURE_DAYS = 30;
+
+    // ─── Distribution ───
+
+    // specs/distribution/agency-management/onboard-agency.feature.md
+    public static final String AGENCY_PENDING_APPOINTMENT = "PendingAppointment";
+    public static final String AGENCY_APPOINTED = "Appointed";
+    public static final String AGENCY_DECLINED = "Declined";
+    public static final String AGENCY_TERMINATED = "Terminated";
+    public static final String DECLINE_ADVERSE_REGULATORY = "adverse regulatory history";
+    public static final int AGENCY_REVIEW_BUSINESS_DAYS = 5;
+    public static final String TIER_BRONZE = "Bronze";
+    public static final String TIER_SILVER = "Silver";
+    public static final String TIER_GOLD = "Gold";
+
+    // specs/distribution/agency-management/manage-agency-appointment.feature.md
+    public static final String APPOINTMENT_PENDING = "Pending";
+    public static final String APPOINTMENT_ACTIVE = "Active";
+    public static final String APPOINTMENT_LAPSED = "Lapsed";
+    public static final String APPOINTMENT_PENDING_COUNTERSIGNATURE = "PendingCountersignature";
+    public static final String LINE_PERSONAL_AUTO = "Personal auto";
+    public static final String LINE_HOMEOWNERS = "Homeowners";
+    public static final String LINE_RENTERS = "Renters";
+    public static final String LINE_UMBRELLA = "Umbrella";
+    public static final String LINE_COMMERCIAL_GL = "Commercial general liability";
+    /** Kentucky requires a resident countersignature for commercial lines. */
+    public static final String COUNTERSIGNATURE_STATE = "KY";
+
+    // specs/distribution/agency-management/set-commission-schedule.feature.md
+    public static final String TXN_NEW_BUSINESS = "NewBusiness";
+    public static final String TXN_RENEWAL = "Renewal";
+    public static final String TXN_ENDORSEMENT = "Endorsement";
+    public static final String TXN_CHARGEBACK = "Chargeback";
+    public static final String TXN_CONTINGENT = "Contingent";
+    public static final String CANCELLATION_FLAT = "flat";
+    public static final String CANCELLATION_SHORT_RATE = "short-rate";
+    public static final java.math.BigDecimal CONTINGENT_LOSS_RATIO_CEILING =
+            new java.math.BigDecimal("60.00");
+    public static final java.math.BigDecimal CONTINGENT_RATE_PCT =
+            new java.math.BigDecimal("3.00");
+    public static final int CONTINGENT_DEVELOPMENT_DAYS = 90;
+
+    // specs/distribution/agency-management/terminate-agency-relationship.feature.md
+    public static final String ROLL_SCHEDULED = "Scheduled";
+    public static final String ROLL_COMPLETED = "Completed";
+    public static final String ROLL_OVERRIDDEN = "Overridden";
+
+    // specs/distribution/producer-licensing/verify-producer-license.feature.md
+    public static final String PRODUCER_ACTIVE = "Active";
+    public static final String PRODUCER_DEPARTED = "Departed";
+    public static final String PRODUCER_SUSPENDED = "Suspended";
+    public static final String LICENSE_ACTIVE = "Active";
+    public static final String LICENSE_EXPIRED = "Expired";
+    public static final String LICENSE_SUSPENDED = "Suspended";
+    public static final String LICENSE_REINSTATED = "Reinstated";
+    public static final String LICENSE_CLASS_PC = "property and casualty";
+    public static final String LICENSE_CLASS_PERSONAL = "personal lines";
+    public static final String REGISTRY_NATIONAL = "national registry";
+    public static final int NAME_MISMATCH_GRACE_DAYS = 30;
+
+    // specs/distribution/producer-licensing/track-license-renewal.feature.md
+    public static final java.util.List<Integer> REMINDER_DAYS_BEFORE =
+            java.util.List.of(90, 60, 30, 7);
+    public static final int REMINDER_COPY_PRINCIPAL_DAYS = 7;
+    public static final int REINSTATEMENT_WINDOW_MONTHS = 12;
+
+    // specs/distribution/producer-licensing/block-unlicensed-production.feature.md
+    public static final String ACTION_BIND = "Bind";
+    public static final String ACTION_QUOTE = "Quote";
+    public static final String BLOCK_NO_ACTIVE_LICENSE = "no active license in the state of the risk";
+    public static final String WITHHELD_PENDING_COMPLIANCE = "written without authority — pending compliance review";
+    public static final int OVERRIDE_HOURS = 72;
+
+    // specs/distribution/agent-portal/manage-portal-user-access.feature.md
+    public static final String PORTAL_INVITED = "Invited";
+    public static final String PORTAL_ACTIVE = "Active";
+    public static final String PORTAL_SUSPENDED = "Suspended";
+    public static final String PORTAL_DISABLED = "Disabled";
+    public static final String PORTAL_DEACTIVATED = "Deactivated";
+    public static final String ROLE_ADMINISTRATOR = "Administrator";
+    public static final String ROLE_PRODUCER = "Producer";
+    public static final String ROLE_SERVICE = "Service";
+    public static final int INVITATION_VALID_DAYS = 7;
+    public static final int DORMANT_ACCOUNT_DAYS = 90;
+    public static final String LAST_ADMIN_MESSAGE =
+            "an agency must retain at least one administrator";
+
+    // specs/distribution/agent-portal/start-quote-in-portal.feature.md
+    public static final String PORTAL_QUOTE_SAVED = "Saved";
+    public static final String PORTAL_QUOTE_REFUSED = "Refused";
+    public static final String PORTAL_QUOTE_SUBJECT_TO_INSPECTION = "SubjectToInspection";
+    public static final String SUBJECT_TO_INSPECTION = "subject to inspection";
+    public static final int ROOF_AGE_INSPECTION_YEARS = 20;
+    public static final String FOUR_POINT_INSPECTION = "four-point inspection";
+
+    // specs/distribution/agent-portal/hand-off-quote-to-underwriter.feature.md
+    public static final String PORTAL_REFERRAL_REFERRED = "Referred";
+    public static final String PORTAL_REFERRAL_AWAITING_INFO = "AwaitingInformation";
+    public static final String PORTAL_REFERRAL_ESCALATED = "Escalated";
+    public static final String PORTAL_REFERRAL_DECLINED = "Declined";
+    public static final String REFERRAL_EXCEEDS_BINDING_AUTHORITY =
+            "exceeds producer binding authority";
+    public static final String ESCALATION_UNDERWRITING_MANAGER = "underwriting manager";
+    public static final String TIER_STANDARD = "Standard";
+    public static final String TIER_COMPLEX = "Complex";
+    public static final String TIER_LARGE_ACCOUNT = "Large account";
+    public static final String SURPLUS_LINES_ADVICE =
+            "the risk may be placed through surplus lines";
+
+    // specs/distribution/embedded/integrate-partner-api.feature.md
+    public static final String PARTNER_SANDBOX = "Sandbox";
+    public static final String PARTNER_CERTIFIED = "Certified";
+    public static final String PARTNER_SUSPENDED = "Suspended";
+    public static final String CREDENTIAL_ACTIVE = "Active";
+    public static final String CREDENTIAL_RETIRING = "Retiring";
+    public static final String CREDENTIAL_RETIRED = "Retired";
+    public static final int CREDENTIAL_OVERLAP_DAYS = 14;
+    public static final int PARTNER_MONITORING_DAYS = 30;
+    public static final int SUSTAINED_THROTTLE_MINUTES = 15;
+    public static final int API_VERSION_RETIREMENT_MONTHS = 12;
+    public static final String API_VERSION_ACTIVE = "Active";
+    public static final String API_VERSION_DEPRECATED = "Deprecated";
+
+    // specs/distribution/embedded/offer-embedded-quote.feature.md
+    public static final String OFFER_OPEN = "Offered";
+    public static final String OFFER_ACCEPTED = "Accepted";
+    public static final String OFFER_EXPIRED = "Expired";
+    public static final String OFFER_NOT_TAKEN = "NotTaken";
+    public static final int EMBEDDED_TOKEN_HOURS = 24;
+    public static final java.math.BigDecimal RENTERS_PERSONAL_PROPERTY =
+            new java.math.BigDecimal("15000.00");
+    public static final java.math.BigDecimal RENTERS_LIABILITY =
+            new java.math.BigDecimal("100000.00");
+
+    // specs/distribution/embedded/attribute-embedded-sale.feature.md
+    public static final String ATTRIBUTION_ATTRIBUTED = "Attributed";
+    public static final String ATTRIBUTION_REVERSED = "Reversed";
+    public static final String ATTRIBUTION_REATTRIBUTED = "Reattributed";
+    public static final int ATTRIBUTION_LOOKBACK_DAYS = 30;
 }

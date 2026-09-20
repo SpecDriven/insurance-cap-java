@@ -107,6 +107,10 @@ entity Policies : cuid, managed {
   garagingZip        : String(10);
   billingPlan        : String(20);   // key into BillingPlans
   paymentMethodToken : String(60);   // original payment method at the gateway
+  // Distribution — specs/distribution/embedded/attribute-embedded-sale.feature.md
+  partnerCode        : String(20);   // embedded channel partner, when sourced there
+  producingAgency    : Association to Agencies;
+  producerOfRecord   : Association to Producers;
   quote              : Association to AutoQuotes;
   vehicles           : Composition of many PolicyVehicles
                          on vehicles.policy = $self;
@@ -642,4 +646,389 @@ entity RecommendationProofs : cuid {
   documentType   : String(40);        // Photograph | Invoice
   fileName       : String(120);
   documentDate   : Date;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Distribution — agencies, producer licensing, agent portal, embedded partners
+// Specs: specs/distribution/**.feature.md
+// ─────────────────────────────────────────────────────────────────────────────
+
+// Agency tier table — CSV seed data, see the table in
+// specs/distribution/agency-management/onboard-agency.feature.md
+entity AgencyTiers {
+  key tierName             : String(20);  // Bronze | Silver | Gold
+  minProjectedPremium      : Decimal(14, 2);
+  maxProjectedPremium      : Decimal(14, 2); // null = no upper bound
+  newBusinessCommissionPct : Decimal(5, 2);
+  contingentEligible       : Boolean default false;
+}
+
+// Standard commission schedule — CSV seed data, see the table in
+// specs/distribution/agency-management/set-commission-schedule.feature.md
+entity CommissionRates {
+  key lineOfBusiness  : String(20);   // Personal auto | Homeowners | Renters | Umbrella
+  newBusinessPct      : Decimal(5, 2);
+  renewalPct          : Decimal(5, 2);
+  endorsementPct      : Decimal(5, 2);
+}
+
+// Referral tiers for portal hand-offs — CSV seed data, see the table in
+// specs/distribution/agent-portal/hand-off-quote-to-underwriter.feature.md
+entity PortalReferralTiers {
+  key tierName          : String(20);  // Standard | Complex | Large account
+  minPremium            : Decimal(14, 2);
+  maxPremium            : Decimal(14, 2); // null = no upper bound
+  acknowledgementHours  : Decimal(5, 2);  // business hours
+  acknowledgementDays   : Integer;        // set instead of hours for 'Large account'
+  decisionDays          : Integer;
+}
+
+// Spec: specs/distribution/agency-management/onboard-agency.feature.md
+entity Agencies : cuid, managed {
+  agencyCode            : String(20);
+  legalName             : String(120);
+  taxId                 : String(20);
+  domicileState         : String(2);
+  status                : String(30);   // PendingAppointment | Appointed | Declined | Terminated
+  declineReason         : String(120);
+  tier                  : String(20);   // Bronze | Silver | Gold
+  projectedNewPremium   : Decimal(14, 2);
+  eoPerClaimLimit       : Decimal(14, 2);
+  eoAggregateLimit      : Decimal(14, 2);
+  residentLicenseState  : String(2);
+  residentLicenseActive : Boolean default false;
+  agencyLicenseExpiresOn : Date;
+  w9Signed              : Boolean default false;
+  principalName         : String(80);
+  principalEmail        : String(120);
+  submittedOn           : Date;
+  reviewerName          : String(80);
+  reviewDueOn           : Date;         // 5 business days from submission
+  // Termination — terminate-agency-relationship.feature.md
+  terminationNoticeOn   : Date;
+  terminationEffectiveOn : Date;
+  terminationForCause   : Boolean default false;
+  noticePeriodDays      : Integer;
+  replacementAgency     : Association to Agencies;
+  unremittedPremium     : Decimal(14, 2);
+  collectionsReferral   : Decimal(14, 2);
+  appointments          : Composition of many AgencyAppointments
+                            on appointments.agency = $self;
+}
+
+// Spec: specs/distribution/agency-management/manage-agency-appointment.feature.md
+entity AgencyAppointments : cuid, managed {
+  agency            : Association to Agencies;
+  state             : String(2);
+  lineOfBusiness    : String(30);     // Personal auto | Homeowners | Commercial general liability
+  status            : String(30);     // Pending | Active | Lapsed | PendingCountersignature
+  filingTransmittedOn : Date;
+  acknowledgedOn    : Date;
+  effectiveDate     : Date;           // the DOI acknowledgement date
+  lapsedOn          : Date;
+  nonResident       : Boolean default false;
+  countersignatureRequired : Boolean default false;
+}
+
+// Spec: specs/distribution/agency-management/set-commission-schedule.feature.md
+entity CommissionSchedules : cuid, managed {
+  agency            : Association to Agencies;
+  lineOfBusiness    : String(30);
+  newBusinessPct    : Decimal(5, 2);
+  renewalPct        : Decimal(5, 2);
+  endorsementPct    : Decimal(5, 2);
+  effectiveDate     : Date;
+  publishedBy       : String(80);
+}
+
+// Commission earned or charged back on a single transaction
+entity CommissionEntries : cuid, managed {
+  agency            : Association to Agencies;
+  policy            : Association to Policies;
+  transactionType   : String(20);     // NewBusiness | Renewal | Endorsement | Chargeback | Contingent
+  basisPremium      : Decimal(14, 2);
+  ratePct           : Decimal(5, 2);
+  amount            : Decimal(14, 2); // negative for a chargeback
+  sharePct          : Decimal(5, 2);  // sub-producer split share, when shared
+  earnedOn          : Date;
+  withheld          : Boolean default false;
+  withheldReason    : String(120);
+  statement         : Association to CommissionStatements;
+}
+
+entity CommissionStatements : cuid, managed {
+  agency              : Association to Agencies;
+  periodStart         : Date;
+  periodEnd           : Date;
+  earnedAmount        : Decimal(14, 2);
+  chargebackAmount    : Decimal(14, 2);
+  premiumOffset       : Decimal(14, 2); // unremitted premium recovered
+  netAmount           : Decimal(14, 2);
+  carriedForward      : Decimal(14, 2); // negative balance carried into the next period
+  paymentIssued       : Boolean default false;
+  entries             : Composition of many CommissionEntries
+                          on entries.statement = $self;
+}
+
+// Contingent commission on an agency's book — set-commission-schedule.feature.md
+entity ContingentCommissions : cuid, managed {
+  agency            : Association to Agencies;
+  contingentYear    : Integer;
+  earnedPremium     : Decimal(14, 2);
+  incurredLoss      : Decimal(14, 2);
+  lossRatioPct      : Decimal(5, 2);
+  ratePct           : Decimal(5, 2);
+  accruedAmount     : Decimal(14, 2);
+  calculatedOn      : Date;           // after the 90-day development window
+}
+
+// Book roll to a replacement agency — terminate-agency-relationship.feature.md
+entity BookRolls : cuid, managed {
+  policy              : Association to Policies;
+  fromAgency          : Association to Agencies;
+  toAgency            : Association to Agencies;
+  status              : String(20);   // Scheduled | Completed | Overridden
+  scheduledFor        : Date;         // the policy's next renewal
+  agentOfRecordLetter : Boolean default false;
+  effectiveDate       : Date;
+}
+
+// Spec: specs/distribution/producer-licensing/verify-producer-license.feature.md
+entity Producers : cuid, managed {
+  npn                 : String(20);   // national producer number
+  fullName            : String(80);
+  email               : String(120);
+  agency              : Association to Agencies;
+  role                : String(30);   // Administrator | Producer | Service
+  residentState       : String(2);
+  status              : String(20);   // Active | Departed | Suspended
+  departedOn          : Date;
+  bindingAuthority    : Decimal(14, 2);
+  bindingRevokedOn    : Date;
+  licenses            : Composition of many ProducerLicenses
+                          on licenses.producer = $self;
+}
+
+entity ProducerLicenses : cuid, managed {
+  producer            : Association to Producers;
+  state               : String(2);
+  licenseClass        : String(40);   // 'property and casualty' | 'personal lines'
+  status              : String(20);   // Active | Expired | Suspended | Reinstated
+  nonResident         : Boolean default false;
+  expiresOn           : Date;
+  suspendedOn         : Date;
+  reinstatedOn        : Date;
+  reinstatementWindowMonths : Integer; // state reinstatement window, e.g. 12
+  lastVerifiedOn      : Date;
+  verificationSource  : String(40);   // 'national registry'
+  nameOnRegistry      : String(80);
+  nameMismatch        : Boolean default false;
+  mismatchGraceDays   : Integer;      // production continues 30 days
+  reviewedForValidity : Boolean default false;
+}
+
+// Reminder cycle — track-license-renewal.feature.md
+entity LicenseReminders : cuid, managed {
+  license           : Association to ProducerLicenses;
+  daysBefore        : Integer;        // 90 | 60 | 30 | 7
+  sentOn            : Date;
+  copiedPrincipal   : Boolean default false;
+}
+
+// Spec: specs/distribution/producer-licensing/block-unlicensed-production.feature.md
+entity ProductionBlocks : cuid, managed {
+  producer          : Association to Producers;
+  agency            : Association to Agencies;
+  policy            : Association to Policies;
+  state             : String(2);
+  attemptedAction   : String(20);     // Bind | Quote
+  blocked           : Boolean default false;
+  reason            : String(120);
+  loggedOn          : Date;
+  producerNumber    : String(20);     // written verbatim to the compliance log
+  complianceOverride : Association to ComplianceOverrides;
+}
+
+entity ComplianceOverrides : cuid, managed {
+  producer          : Association to Producers;
+  approvedBy        : String(80);     // compliance officer
+  evidence          : String(200);
+  approvedAt        : Timestamp;
+  expiresAt         : Timestamp;      // 72 hours after approval
+  usesRemaining     : Integer;        // permitted once
+}
+
+// Spec: specs/distribution/agent-portal/manage-portal-user-access.feature.md
+entity PortalUsers : cuid, managed {
+  agency            : Association to Agencies;
+  producer          : Association to Producers;
+  email             : String(120);
+  role              : String(30);     // Administrator | Producer | Service
+  status            : String(30);     // Invited | Active | Suspended | Disabled | Deactivated
+  invitedOn         : Date;
+  invitationExpiresOn : Date;         // 7 days
+  licenseVerified   : Boolean default false;
+  lastSignInOn      : Date;
+  disabledOn        : Date;
+  reactivationRequiresApproval : Boolean default false;
+  newBusinessSuspended : Boolean default false;
+  servicingRetained : Boolean default true;
+}
+
+// Spec: specs/distribution/agent-portal/start-quote-in-portal.feature.md
+entity PortalQuotes : cuid, managed {
+  agency            : Association to Agencies;
+  producer          : Association to Producers;
+  autoQuote         : Association to AutoQuotes;
+  homeQuote         : Association to HomeQuotes;
+  lineOfBusiness    : String(20);
+  status            : String(30);     // Saved | Refused | SubjectToInspection | Referred
+  refusalReason     : String(160);
+  garagingState     : String(2);
+  garagingZip       : String(10);
+  roofAgeYears      : Integer;
+  indicativePremium : Decimal(12, 2);
+  subjectToInspection : Boolean default false;
+  inspectionOrdered : Boolean default false;
+  mvrConsentCaptured : Boolean default false;
+  mvrConsentOn      : Date;
+  savedOn           : Date;
+}
+
+// Spec: specs/distribution/agent-portal/hand-off-quote-to-underwriter.feature.md
+entity PortalReferrals : cuid, managed {
+  portalQuote         : Association to PortalQuotes;
+  submission          : Association to Submissions;
+  agency              : Association to Agencies;
+  producer            : Association to Producers;
+  tierName            : String(20);   // Standard | Complex | Large account
+  annualPremium       : Decimal(14, 2);
+  status              : String(30);   // Referred | AwaitingInformation | Escalated | Declined
+  reason              : String(120);
+  classCode           : String(20);
+  declineReason       : String(120);
+  surplusLinesAdvised : Boolean default false;
+  referredAt          : Timestamp;
+  acknowledgementDueAt : Timestamp;
+  acknowledgedAt      : Timestamp;
+  clockPausedAt       : Timestamp;
+  clockResumedAt      : Timestamp;
+  pausedHours         : Decimal(7, 2);
+  escalatedTo         : String(80);
+  escalatedAt         : Timestamp;
+  timeline            : Composition of many ReferralTimelineEvents
+                          on timeline.referral = $self;
+}
+
+entity ReferralTimelineEvents : cuid {
+  referral    : Association to PortalReferrals;
+  eventType   : String(40);           // Referred | InformationRequested | Escalated | Declined
+  description : String(200);
+  occurredAt  : Timestamp;
+  visibleToProducer : Boolean default true;
+}
+
+// Spec: specs/distribution/agent-portal/view-book-of-business.feature.md
+entity BookOfBusinessViews : cuid {
+  agency            : Association to Agencies;
+  producer          : Association to Producers;
+  agencyWide        : Boolean default false;
+  inForceCount      : Integer;
+  writtenPremium    : Decimal(16, 2);
+  earnedPremium     : Decimal(16, 2);
+  incurredLoss      : Decimal(16, 2);
+  lossRatioPct      : Decimal(5, 2);
+  asOfDate          : Date;           // the previous night's close
+  generatedAt       : Timestamp;
+}
+
+entity BookExports : cuid, managed {
+  agency            : Association to Agencies;
+  requestedBy       : String(120);
+  requestedAt       : Timestamp;
+  format            : String(20);     // csv
+  rowCount          : Integer;
+  accountNumbersOmitted : Boolean default true;
+  datesOfBirthOmitted   : Boolean default true;
+  auditLogged       : Boolean default false;
+}
+
+// Spec: specs/distribution/embedded/integrate-partner-api.feature.md
+entity Partners : cuid, managed {
+  partnerCode       : String(20);     // e.g. LEASEHUB
+  name              : String(120);
+  status            : String(20);     // Sandbox | Certified | Suspended
+  licensedEntity    : Boolean default false;
+  agencyOfRecord    : Association to Agencies;
+  sandboxCertifiedOn : Date;
+  productionGrantedOn : Date;
+  scopedLines       : String(80);     // 'renters, personal auto'
+  rateLimitPerMinute : Integer;
+  monitoredRateLimitPerMinute : Integer; // reduced limit for the first 30 days
+  monitoringEndsOn  : Date;
+  schemaVersion     : Integer;
+  suspensionReason  : String(160);
+  credentials       : Composition of many PartnerCredentials
+                        on credentials.partner = $self;
+}
+
+entity PartnerCredentials : cuid, managed {
+  partner           : Association to Partners;
+  apiKey            : String(60);
+  status            : String(20);     // Active | Retiring | Retired
+  issuedOn          : Date;
+  retiresOn         : Date;           // end of the 14-day overlap window
+}
+
+// Versioned quote endpoint — integrate-partner-api.feature.md
+entity PartnerApiVersions {
+  key version       : Integer;
+  status            : String(20);     // Active | Deprecated | Retired
+  publishedOn       : Date;
+  earliestRetirementOn : Date;        // no sooner than 12 months after its successor
+}
+
+entity ThrottleEvents : cuid {
+  partner           : Association to Partners;
+  occurredAt        : Timestamp;
+  requestsPerMinute : Integer;
+  retryAfterSeconds : Integer;
+  sustainedSince    : Timestamp;
+  incidentOpened    : Boolean default false;
+}
+
+// Spec: specs/distribution/embedded/offer-embedded-quote.feature.md
+entity EmbeddedOffers : cuid, managed {
+  partner             : Association to Partners;
+  quoteToken          : String(30);
+  lineOfBusiness      : String(20);   // Renters | Auto
+  status              : String(20);   // Offered | Accepted | Expired | NotTaken
+  premium             : Decimal(12, 2);
+  coverageSummary     : String(200);
+  personalPropertyLimit : Decimal(12, 2);
+  liabilityLimit      : Decimal(12, 2);
+  applicantName       : String(80);
+  applicantEmail      : String(120);
+  unitAddress         : String(120);
+  leaseStartDate      : Date;
+  issuedAt            : Timestamp;
+  expiresAt           : Timestamp;    // 24 hours, or the lease start date
+  disclosureShown     : Boolean default false;
+  coverageSummaryShown : Boolean default false;
+  acceptedAt          : Timestamp;
+}
+
+// Spec: specs/distribution/embedded/attribute-embedded-sale.feature.md
+entity SaleAttributions : cuid, managed {
+  policy              : Association to Policies;
+  offer               : Association to EmbeddedOffers;
+  partner             : Association to Partners;
+  agencyOfRecord      : Association to Agencies;
+  partnerCode         : String(20);   // stamped on the policy
+  status              : String(20);   // Attributed | Reversed | Reattributed
+  attributedOn        : Date;
+  frozen              : Boolean default false; // once the first commission is paid
+  commissionPaid      : Boolean default false;
+  supersededBy        : Association to SaleAttributions;
+  approvedBy          : String(80);   // distribution management, on a correction
 }

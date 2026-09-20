@@ -1,0 +1,4 @@
+tierName,minProjectedPremium,maxProjectedPremium,newBusinessCommissionPct,contingentEligible
+Bronze,0.00,249999.99,10.00,false
+Silver,250000.00,1000000.00,12.00,true
+Gold,1000000.01,,14.00,true
