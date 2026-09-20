@@ -1,0 +1,4 @@
+roleName,limitAmount,creditBandPct,escalatesTo
+underwriter,5000000.00,15.00,regional underwriting manager
+regional underwriting manager,25000000.00,25.00,chief underwriter
+chief underwriter,100000000.00,40.00,

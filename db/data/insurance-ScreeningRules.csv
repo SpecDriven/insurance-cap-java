@@ -1,0 +1,6 @@
+ruleName,outcomeOnFailure,overridable,displayOrder
+Valid license,decline,false,1
+Loss history,refer,true,2
+Insurance score,refer,true,3
+Prior cancellation,refer,true,4
+Residency in state,decline,false,5

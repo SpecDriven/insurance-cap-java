@@ -1,0 +1,6 @@
+tier,minScore,maxScore,tierFactor,neutral
+A,800,997,0.870,false
+B,740,799,0.940,false
+C,670,739,1.000,true
+D,600,669,1.150,false
+E,300,599,1.340,false

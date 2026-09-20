@@ -1,0 +1,5 @@
+referralType,targetHours,firstReminderHours,breachEscalation,businessDays
+Standard personal,8,6,team lead,false
+Over-limit authority,4,2,regional manager,false
+Catastrophe moratorium,2,1,chief underwriter,false
+Complex commercial,16,8,practice leader,true

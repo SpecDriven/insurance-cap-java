@@ -25,6 +25,14 @@ public class MutableClock extends Clock {
         this.instant = date.atTime(LocalTime.of(9, 0)).atZone(zone).toInstant();
     }
 
+    /**
+     * Sets the clock to a specific local time — referral SLA scenarios measure
+     * business hours from moments like "9:00 AM Monday" and "4:00 PM Friday".
+     */
+    public void setBusinessDateTime(LocalDate date, LocalTime time) {
+        this.instant = date.atTime(time).atZone(zone).toInstant();
+    }
+
     public LocalDate businessDate() {
         return LocalDate.now(this);
     }

@@ -1,0 +1,5 @@
+bandName,minUtilizationPct,maxUtilizationPct,newBusiness,renewals,approvalRequired
+Under 75,0.00,74.99,open,open,none
+75 to 89,75.00,89.99,open,open,none
+90 to 97,90.00,97.99,restricted,open,underwriter
+98 or more,98.00,999.99,closed,reviewed,chief underwriter
